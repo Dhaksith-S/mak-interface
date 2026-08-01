@@ -114,6 +114,13 @@ def receive_dose():
     source     = str(data.get("source", "UNKNOWN"))
     auth_token = str(data.get("auth_token", ""))
     source_mac = str(data.get("source_mac", "00:00:00:00:00:00"))
+    # Set by cvb.py's attack buttons (device spoofing, stolen credentials,
+    # rate flooding, AI-evasion) that succeed on a small/moderate dose --
+    # this pump has no way to independently recognize those as attacks the
+    # way MedShield does, so it trusts the flag rather than only ever
+    # catching the one scenario that happens to exceed 50U.
+    is_flagged_attack = bool(data.get("is_attack", False))
+    is_attack_now      = units > 50 or is_flagged_attack
 
     with state_lock:
         pump_state["current_dose"]       = units
@@ -126,12 +133,12 @@ def receive_dose():
             "timestamp": datetime.now().strftime("%H:%M:%S"),
             "source"   : source,
             "units"    : units,
-            "is_attack": units > 50
+            "is_attack": is_attack_now
         }
         pump_state["dose_history"].insert(0, entry)
         pump_state["dose_history"] = pump_state["dose_history"][:30]
 
-        if units > 50:
+        if is_attack_now:
             pump_state["status"]         = "COMPROMISED"
             pump_state["is_compromised"] = True
             pump_state["attack_count"]  += 1

@@ -55,44 +55,59 @@ TDIM     = "#8394a1"
 #   Pairing Hijack   -> L1 Zero Trust Engine (no token)     [known device, empty token]
 #   Cred Theft       -> L5 Behaviour Baseline (drift)       [valid creds, seeds a baseline then spikes it]
 #   Stealth Injection-> L3 AI Anomaly + L6 Digital Twin     [fully valid/compliant, still model-flagged]
+# Every real attack payload below also carries "is_attack": True. Laptop 1's
+# own /dose handler used to only mark itself COMPROMISED when units > 50 --
+# fine for Overdose (200U), but every other scenario here deliberately uses
+# a small/moderate dose to demonstrate a *different* layer (spoofing, stolen
+# credentials, rate flooding, AI-evasion), so when MedShield is OFF and one
+# of those goes straight to the pump, Laptop 1 never recognized it as an
+# attack at all -- it has no way to independently know a 5U command came
+# from an unpaired device or a 45U dose is statistically anomalous, that's
+# exactly the detection MedShield exists to provide. This flag lets the
+# attack itself assert what it is, so the "unprotected" demo path still
+# shows COMPROMISED for every scenario, not just the one that happens to
+# exceed 50U.
 ATTACKS = [
     {
         "name": "Overdose", "kind": "single",
         "desc": "Overdose Command (200U)",
         "payload": {"units": 200, "source": "CGM_001", "auth_token": "valid_cgm_session",
-                    "source_mac": "AA:BB:CC:DD:EE:02"},
+                    "source_mac": "AA:BB:CC:DD:EE:02", "is_attack": True},
     },
     {
         "name": "Rapid Repeat", "kind": "burst", "count": 42,
         "desc": "Rapid Repeat Attack (command flood)",
         "payload": {"units": 3, "source": "CGM_001", "auth_token": "valid_cgm_session",
-                    "source_mac": "AA:BB:CC:DD:EE:02"},
+                    "source_mac": "AA:BB:CC:DD:EE:02", "is_attack": True},
     },
     {
         "name": "Spoof Device", "kind": "single",
         "desc": "Device Spoofing (MAC identity mismatch)",
         "payload": {"units": 4, "source": "CGM_001", "auth_token": "valid_cgm_session",
-                    "source_mac": "AA:BB:CC:DD:EE:03"},  # real MAC belongs to DrApp_A, not CGM_001
+                    "source_mac": "AA:BB:CC:DD:EE:03", "is_attack": True},  # real MAC belongs to DrApp_A, not CGM_001
     },
     {
         "name": "Pairing Hijack", "kind": "single",
         "desc": "BLE Pairing Hijack (missing credentials)",
         "payload": {"units": 5, "source": "PatientApp", "auth_token": "",
-                    "source_mac": "AA:BB:CC:DD:EE:04"},
+                    "source_mac": "AA:BB:CC:DD:EE:04", "is_attack": True},
     },
     {
         "name": "Cred Theft", "kind": "seed_then_spike", "seed_count": 5,
         "desc": "Stolen Credentials -- Baseline Drift",
+        # seed_payload deliberately has NO is_attack flag -- it has to look
+        # completely legitimate for the baseline-priming (and L5's own
+        # allow/block distinction) to mean anything.
         "seed_payload": {"units": 2.5, "source": "DrApp_A", "auth_token": "valid_drapp_session",
                           "source_mac": "AA:BB:CC:DD:EE:03"},
         "spike_payload": {"units": 18, "source": "DrApp_A", "auth_token": "valid_drapp_session",
-                           "source_mac": "AA:BB:CC:DD:EE:03"},
+                           "source_mac": "AA:BB:CC:DD:EE:03", "is_attack": True},
     },
     {
         "name": "Stealth Injection", "kind": "single",
         "desc": "AI-Evasion Attack (rule-compliant, model-caught)",
         "payload": {"units": 45, "source": "PatientApp", "auth_token": "valid_patient_session",
-                    "source_mac": "AA:BB:CC:DD:EE:04"},
+                    "source_mac": "AA:BB:CC:DD:EE:04", "is_attack": True},
     },
 ]
 
@@ -863,7 +878,23 @@ class MedShieldDashboard(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("MedShield AI — Insulin Pump Security System")
-        self.setGeometry(20, 20, 1720, 1020)
+        # Was a fixed setGeometry(20, 20, 1720, 1020) -- on any screen
+        # shorter than ~1040px (common on laptops), the bottom of the
+        # window landed off-screen or under the taskbar. Quick Controls is
+        # the last of 4 stacked cards in the left column (so it sits low),
+        # while Attack Simulation is the first thing in the right column
+        # (so it sits high) -- meaning that cutoff took out Quick Controls
+        # specifically while leaving Attack Simulation reachable, exactly
+        # matching the reported symptom. Sizing against the actual screen's
+        # available geometry keeps every control on-screen regardless of
+        # resolution.
+        screen = QApplication.primaryScreen()
+        avail = screen.availableGeometry() if screen else QRect(20, 20, 1720, 1020)
+        w = min(1720, avail.width() - 40)
+        h = min(1020, avail.height() - 40)
+        x = avail.x() + (avail.width() - w) // 2
+        y = avail.y() + (avail.height() - h) // 2
+        self.setGeometry(x, y, w, h)
         self.setStyleSheet(f"QMainWindow,QWidget{{background:{BG_MAIN};color:white;}}")
 
         self.engine         = GlucoseEngine()

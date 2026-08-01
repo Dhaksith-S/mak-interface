@@ -4,9 +4,10 @@ This is just the pump side of the MedShield AI demo: `app.py` (Flask backend
 simulating the insulin pump) and `cvb.py` (PyQt6 desktop dashboard).
 
 `config.py` is already set up to reach the MedShield defense server
-(Laptop 3) at `10.64.194.169` over WiFi — both machines need to be on the
-same network. If that laptop reconnects to a different network, get its
-new IP there via `ipconfig` and update `MEDSHIELD_IP` in `config.py`.
+(Laptop 3) at `10.251.160.169` over WiFi — both machines need to be on the
+same network. This IP changes whenever that laptop reconnects to a
+different network — if the pump can't reach MedShield, get its current IP
+there via `ipconfig` and update `MEDSHIELD_IP` in `config.py` to match.
 
 ## Setup
 
