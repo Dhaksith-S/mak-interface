@@ -9,7 +9,7 @@ Change IPs here ONLY. Everything else reads from this file.
 # running on the machine at MEDSHIELD_IP below, over the same WiFi/router.
 PUMP_IP       = "127.0.0.1"       # Laptop 1 — this machine (yours)
 ATTACKER_IP   = "127.0.0.1"       # Laptop 2 — not used in this handoff
-MEDSHIELD_IP  = "10.251.160.169"   # Laptop 3 — the MedShield laptop's real LAN IP
+MEDSHIELD_IP  = "10.200.65.134"   # Laptop 3 — the MedShield laptop's real LAN IP
 
 # If MedShield's laptop reconnects to a different network (its IP
 # changes), get its new one there via `ipconfig` and update MEDSHIELD_IP
